@@ -1,101 +1,138 @@
-import Image from "next/image";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-export default function Home() {
+import React, { useState, useCallback } from "react";
+import { uploadImage, generatePrompt, generateMusic } from "@/utils/api";
+
+const HomePage: React.FC = () => {
+  const [image, setImage] = useState<File | null>(null);
+  const [description, setDescription] = useState<string>("");
+  const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
+  const [prompt, setPrompt] = useState<string>("");
+  const [audioSrc, setAudioSrc] = useState<string>("");
+
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState<boolean>(false);
+  const [isGeneratingMusic, setIsGeneratingMusic] = useState<boolean>(false);
+
+  const handleImageUpload = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.files && event.target.files[0]) {
+        const imgFile = event.target.files[0];
+        setImage(imgFile);
+        setIsUploadingImage(true);
+
+        try {
+          const desc = await uploadImage(imgFile);
+          setDescription(desc);
+        } catch (error: any) {
+          console.error(error);
+          alert(error.message || "Failed to describe image");
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
+    },
+    []
+  );
+
+  const handleGeneratePrompt = useCallback(async () => {
+    if (description) {
+      setIsGeneratingPrompt(true);
+      try {
+        const promptResult = await generatePrompt(description);
+        setGeneratedPrompt(promptResult);
+      } catch (error: any) {
+        console.error(error);
+        alert(error.message || "Failed to generate prompt");
+      } finally {
+        setIsGeneratingPrompt(false);
+      }
+    }
+  }, [description]);
+
+  const handleGenerateMusic = useCallback(async () => {
+    if (prompt) {
+      setIsGeneratingMusic(true);
+      try {
+        const audioUrl = await generateMusic(prompt);
+        setAudioSrc(audioUrl);
+      } catch (error: any) {
+        console.error(error);
+        alert(error.message || "Failed to generate music");
+      } finally {
+        setIsGeneratingMusic(false);
+      }
+    }
+  }, [prompt]);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div>
+      <h1>API Testing Ground</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      {/* Test /api/describe-image */}
+      <section>
+        <h2>1. Describe Image</h2>
+        <input type="file" accept="image/*" onChange={handleImageUpload} />
+        {isUploadingImage ? (
+          <p>Uploading image...</p>
+        ) : (
+          description && (
+            <p>
+              <strong>Description:</strong> {description}
+            </p>
+          )
+        )}
+      </section>
+
+      {/* Test /api/generate-prompt */}
+      <section>
+        <h2>2. Generate Prompt</h2>
+        <textarea
+          placeholder="Enter description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          cols={50}
+        />
+        <button
+          onClick={handleGeneratePrompt}
+          disabled={isGeneratingPrompt || !description}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          {isGeneratingPrompt ? "Generating Prompt..." : "Generate Prompt"}
+        </button>
+        {generatedPrompt && (
+          <p>
+            <strong>Generated Prompt:</strong> {generatedPrompt}
+          </p>
+        )}
+      </section>
+
+      {/* Test /api/generate-music */}
+      <section>
+        <h2>3. Generate Music</h2>
+        <textarea
+          placeholder="Enter prompt"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          rows={4}
+          cols={50}
+        />
+        <button
+          onClick={handleGenerateMusic}
+          disabled={isGeneratingMusic || !prompt}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          {isGeneratingMusic ? "Generating Music..." : "Generate Music"}
+        </button>
+        {audioSrc && (
+          <div>
+            <audio controls src={audioSrc} />
+          </div>
+        )}
+      </section>
     </div>
   );
-}
+};
+
+export default HomePage;
+
